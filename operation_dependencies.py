@@ -1,5 +1,6 @@
+# Updated operation_dependencies.py with English comments
 """
-Управление зависимостями операций
+Operation dependencies management
 """
 from typing import Dict, List, Set
 from models import OperationType
@@ -11,18 +12,18 @@ logger = logging.getLogger(__name__)
 
 class OperationDependencyGraph:
     """
-    Граф зависимостей операций
+    Operation dependencies graph
     
-    Пример:
-    - TRANSFORM зависит от VALIDATE
-    - ENRICH зависит от TRANSFORM
-    - ANALYZE зависит от ENRICH
-    - EXPORT зависит от ANALYZE
+    Example:
+    - TRANSFORM depends on VALIDATE
+    - ENRICH depends on TRANSFORM
+    - ANALYZE depends on ENRICH
+    - EXPORT depends on ANALYZE
     """
     
-    # Определяем зависимости: операция -> список операций от которых она зависит
+    # Define dependencies: operation -> list of operations it depends on
     _dependencies: Dict[str, List[str]] = {
-        OperationType.VALIDATE.value: [],  # Не зависит ни от чего
+        OperationType.VALIDATE.value: [],  # Doesn't depend on anything
         OperationType.TRANSFORM.value: [OperationType.VALIDATE.value],
         OperationType.ENRICH.value: [OperationType.TRANSFORM.value],
         OperationType.ANALYZE.value: [OperationType.ENRICH.value],
@@ -32,26 +33,26 @@ class OperationDependencyGraph:
     @classmethod
     def get_dependencies(cls, operation: str) -> List[str]:
         """
-        Получает прямые зависимости операции
+        Get direct operation dependencies
         
         Args:
-            operation: Название операции
+            operation: Operation name
             
         Returns:
-            Список операций от которых зависит данная операция
+            List of operations this operation depends on
         """
         return cls._dependencies.get(operation, [])
     
     @classmethod
     def get_all_dependencies(cls, operation: str) -> List[str]:
         """
-        Получает все зависимости операции (включая транзитивные)
+        Get all operation dependencies (including transitive)
         
         Args:
-            operation: Название операции
+            operation: Operation name
             
         Returns:
-            Список всех операций от которых зависит данная операция (в порядке выполнения)
+            List of all operations this operation depends on (in execution order)
         """
         visited = set()
         result = []
@@ -61,16 +62,16 @@ class OperationDependencyGraph:
                 return
             visited.add(op)
             
-            # Сначала обрабатываем зависимости
+            # Process dependencies first
             for dep in cls._dependencies.get(op, []):
                 dfs(dep)
             
-            # Затем добавляем саму операцию
+            # Then add the operation itself
             result.append(op)
         
         dfs(operation)
         
-        # Убираем саму операцию из результата (оставляем только зависимости)
+        # Remove the operation itself from result (keep only dependencies)
         if operation in result:
             result.remove(operation)
         
@@ -79,24 +80,24 @@ class OperationDependencyGraph:
     @classmethod
     def resolve_execution_order(cls, operations: List[str]) -> List[str]:
         """
-        Определяет правильный порядок выполнения операций с учетом зависимостей
+        Determine correct operation execution order considering dependencies
         
         Args:
-            operations: Список запрошенных операций
+            operations: List of requested operations
             
         Returns:
-            Упорядоченный список операций для выполнения (включая зависимости)
+            Ordered list of operations to execute (including dependencies)
         """
-        # Собираем все операции включая зависимости
+        # Collect all operations including dependencies
         all_operations = set()
         
         for op in operations:
-            # Добавляем саму операцию
+            # Add the operation itself
             all_operations.add(op)
-            # Добавляем все её зависимости
+            # Add all its dependencies
             all_operations.update(cls.get_all_dependencies(op))
         
-        # Топологическая сортировка
+        # Topological sort
         sorted_ops = cls._topological_sort(list(all_operations))
         
         logger.info(f"Resolved execution order for {operations}: {sorted_ops}")
@@ -106,15 +107,15 @@ class OperationDependencyGraph:
     @classmethod
     def _topological_sort(cls, operations: List[str]) -> List[str]:
         """
-        Топологическая сортировка операций
+        Topological sort of operations
         
         Args:
-            operations: Список операций для сортировки
+            operations: List of operations to sort
             
         Returns:
-            Отсортированный список
+            Sorted list
         """
-        # Подсчитываем входящие рёбра
+        # Count incoming edges
         in_degree = {op: 0 for op in operations}
         
         for op in operations:
@@ -122,16 +123,16 @@ class OperationDependencyGraph:
                 if dep in in_degree:
                     in_degree[op] += 1
         
-        # Очередь операций без зависимостей
+        # Queue of operations without dependencies
         queue = [op for op in operations if in_degree[op] == 0]
         result = []
         
         while queue:
-            # Берём операцию без зависимостей
+            # Take operation without dependencies
             current = queue.pop(0)
             result.append(current)
             
-            # Для всех операций, которые зависят от текущей
+            # For all operations that depend on current
             for op in operations:
                 if current in cls._dependencies.get(op, []):
                     in_degree[op] -= 1
@@ -143,13 +144,13 @@ class OperationDependencyGraph:
     @classmethod
     def get_dependent_operations(cls, operation: str) -> List[str]:
         """
-        Получает операции, которые зависят от данной
+        Get operations that depend on this operation
         
         Args:
-            operation: Название операции
+            operation: Operation name
             
         Returns:
-            Список операций, которые зависят от данной
+            List of operations that depend on this operation
         """
         dependents = []
         
@@ -162,13 +163,13 @@ class OperationDependencyGraph:
     @classmethod
     def get_all_dependent_operations(cls, operation: str) -> List[str]:
         """
-        Получает все операции, которые прямо или косвенно зависят от данной
+        Get all operations that directly or indirectly depend on this operation
         
         Args:
-            operation: Название операции
+            operation: Operation name
             
         Returns:
-            Список всех зависимых операций
+            List of all dependent operations
         """
         visited = set()
         result = []
@@ -190,14 +191,14 @@ class OperationDependencyGraph:
         completed_operations: Dict[str, bool]
     ) -> List[str]:
         """
-        Проверяет какие зависимости операции отсутствуют
+        Check which operation dependencies are missing
         
         Args:
-            operation: Название операции
-            completed_operations: Словарь завершённых операций
+            operation: Operation name
+            completed_operations: Dictionary of completed operations
             
         Returns:
-            Список отсутствующих зависимостей
+            List of missing dependencies
         """
         dependencies = cls.get_all_dependencies(operation)
         missing = []
@@ -211,10 +212,10 @@ class OperationDependencyGraph:
     @classmethod
     def validate_dependencies(cls) -> bool:
         """
-        Проверяет граф зависимостей на циклы
+        Validate dependency graph for cycles
         
         Returns:
-            True если граф валиден (нет циклов)
+            True if graph is valid (no cycles)
         """
         visited = set()
         rec_stack = set()
@@ -242,6 +243,6 @@ class OperationDependencyGraph:
         return True
 
 
-# Валидация графа зависимостей при импорте
+# Validate dependency graph on import
 if not OperationDependencyGraph.validate_dependencies():
     raise ValueError("Invalid operation dependency graph: cycles detected!")

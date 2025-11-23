@@ -1,5 +1,6 @@
+# Updated state_machine.py with English comments
 """
-State Machine для управления состояниями объекта
+State Machine for object state management
 """
 from transitions import Machine
 from models import ProcessState
@@ -11,9 +12,9 @@ logger = logging.getLogger(__name__)
 
 class ObjectStateMachine:
     """
-    State machine для управления жизненным циклом объекта
+    State machine for managing object lifecycle
     
-    Граф переходов:
+    Transition graph:
     PENDING → QUEUED → PROCESSING → COMPLETED
                 ↓           ↓
             CANCELLED   FAILED
@@ -21,12 +22,12 @@ class ObjectStateMachine:
                        QUEUED (retry)
     """
     
-    # Все возможные состояния
+    # All possible states
     states = [state.value for state in ProcessState]
     
-    # Конфигурация переходов
+    # Transition configuration
     transitions_config = [
-        # Из PENDING в QUEUED
+        # From PENDING to QUEUED
         {
             'trigger': 'queue',
             'source': ProcessState.PENDING.value,
@@ -34,7 +35,7 @@ class ObjectStateMachine:
             'before': 'on_queue'
         },
         
-        # Из QUEUED в PROCESSING
+        # From QUEUED to PROCESSING
         {
             'trigger': 'start_processing',
             'source': ProcessState.QUEUED.value,
@@ -42,7 +43,7 @@ class ObjectStateMachine:
             'before': 'on_start_processing'
         },
         
-        # Из PROCESSING в COMPLETED
+        # From PROCESSING to COMPLETED
         {
             'trigger': 'complete',
             'source': ProcessState.PROCESSING.value,
@@ -50,7 +51,7 @@ class ObjectStateMachine:
             'before': 'on_complete'
         },
         
-        # Из PROCESSING или QUEUED в FAILED
+        # From PROCESSING or QUEUED to FAILED
         {
             'trigger': 'fail',
             'source': [ProcessState.PROCESSING.value, ProcessState.QUEUED.value],
@@ -58,7 +59,7 @@ class ObjectStateMachine:
             'before': 'on_fail'
         },
         
-        # Из PENDING, QUEUED или PROCESSING в CANCELLED
+        # From PENDING, QUEUED or PROCESSING to CANCELLED
         {
             'trigger': 'cancel',
             'source': [
@@ -70,7 +71,7 @@ class ObjectStateMachine:
             'before': 'on_cancel'
         },
         
-        # Из FAILED в QUEUED (retry)
+        # From FAILED to QUEUED (retry)
         {
             'trigger': 'retry',
             'source': ProcessState.FAILED.value,
@@ -81,10 +82,10 @@ class ObjectStateMachine:
     
     def __init__(self, initial_state: str = ProcessState.PENDING.value):
         """
-        Инициализация state machine
+        Initialize state machine
         
         Args:
-            initial_state: Начальное состояние
+            initial_state: Initial state
         """
         self.machine = Machine(
             model=self,
@@ -97,18 +98,18 @@ class ObjectStateMachine:
         logger.debug(f"State machine initialized with state: {initial_state}")
     
     def get_current_state(self) -> str:
-        """Возвращает текущее состояние"""
+        """Get current state"""
         return self.state
     
     def can_transition(self, trigger: str) -> bool:
         """
-        Проверяет, возможен ли переход
+        Check if transition is possible
         
         Args:
-            trigger: Название триггера
+            trigger: Trigger name
             
         Returns:
-            True если переход возможен
+            True if transition is possible
         """
         try:
             available_triggers = self.machine.get_triggers(self.state)
@@ -118,34 +119,34 @@ class ObjectStateMachine:
             return False
     
     def get_available_transitions(self) -> list:
-        """Возвращает список доступных переходов"""
+        """Get list of available transitions"""
         try:
             return self.machine.get_triggers(self.state)
         except:
             return []
     
-    # Callbacks для логирования переходов
+    # Callbacks for transition logging
     
     def on_queue(self, event):
-        """Callback при переходе в QUEUED"""
+        """Callback when transitioning to QUEUED"""
         logger.info(f"State transition: {event.transition.source} → QUEUED")
     
     def on_start_processing(self, event):
-        """Callback при переходе в PROCESSING"""
+        """Callback when transitioning to PROCESSING"""
         logger.info(f"State transition: {event.transition.source} → PROCESSING")
     
     def on_complete(self, event):
-        """Callback при переходе в COMPLETED"""
+        """Callback when transitioning to COMPLETED"""
         logger.info(f"State transition: {event.transition.source} → COMPLETED")
     
     def on_fail(self, event):
-        """Callback при переходе в FAILED"""
+        """Callback when transitioning to FAILED"""
         logger.warning(f"State transition: {event.transition.source} → FAILED")
     
     def on_cancel(self, event):
-        """Callback при переходе в CANCELLED"""
+        """Callback when transitioning to CANCELLED"""
         logger.info(f"State transition: {event.transition.source} → CANCELLED")
     
     def on_retry(self, event):
-        """Callback при retry"""
+        """Callback on retry"""
         logger.info(f"State transition: FAILED → QUEUED (retry)")

@@ -1,5 +1,6 @@
+# Updated main.py with English comments
 """
-Главный файл FastAPI приложения
+Main FastAPI application file
 """
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -24,34 +25,34 @@ from worker import Worker
 from config import settings
 
 
-# Настройка логирования
+# Logging setup
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Глобальные объекты
+# Global objects
 queue_manager = QueueManager()
 workers = []
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifecycle manager для FastAPI - управление startup и shutdown"""
+    """FastAPI lifecycle manager - manage startup and shutdown"""
     # Startup
     logger.info("Application starting up...")
     
     try:
-        # Инициализируем БД
+        # Initialize database
         await init_db()
         logger.info("Database initialized")
         
-        # Подключаемся к Redis
+        # Connect to Redis
         await queue_manager.connect()
         logger.info("Connected to Redis")
         
-        # Запускаем воркеры
+        # Start workers
         for i in range(3):
             worker = Worker(queue_manager)
             workers.append(worker)
@@ -70,16 +71,16 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutting down...")
     
     try:
-        # Останавливаем воркеров
+        # Stop workers
         for worker in workers:
             await worker.stop()
         logger.info("All workers stopped")
         
-        # Отключаемся от Redis
+        # Disconnect from Redis
         await queue_manager.disconnect()
         logger.info("Disconnected from Redis")
         
-        # Закрываем БД
+        # Close database
         await close_db()
         logger.info("Database connections closed")
         
@@ -89,10 +90,10 @@ async def lifespan(app: FastAPI):
     logger.info("Application shut down successfully")
 
 
-# Создаем приложение
+# Create application
 app = FastAPI(
     title="Object Processing API",
-    description="Асинхронное API для обработки объектов с State Machine",
+    description="Asynchronous API for object processing with State Machine",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -104,21 +105,21 @@ async def process_object(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    Создает или обновляет объект и запускает обработку
+    Create or update object and start processing
     
-    - Если объект с таким identifier уже существует, будет использован существующий
-    - Объект помещается в очередь для обработки
-    - Обработка выполняется асинхронно воркерами
+    - If object with this identifier already exists, existing one will be used
+    - Object is placed in queue for processing
+    - Processing is executed asynchronously by workers
     """
     logger.info(f"Received processing request for {request.identifier}")
     
-    # Ищем существующий объект
+    # Find existing object
     result = await session.execute(
         select(ProcessingObject).where(ProcessingObject.identifier == request.identifier)
     )
     obj = result.scalar_one_or_none()
     
-    # Создаем новый объект если не найден
+    # Create new object if not found
     if not obj:
         obj = ProcessingObject(
             identifier=request.identifier,
@@ -131,10 +132,10 @@ async def process_object(
     else:
         logger.info(f"Found existing object with ID {obj.id}")
     
-    # Создаем state machine
+    # Create state machine
     state_machine = ObjectStateMachine(initial_state=obj.state.value)
     
-    # Переводим в очередь
+    # Transition to queue
     if state_machine.can_transition('queue'):
         state_machine.queue()
         obj.state = ProcessState.QUEUED
@@ -148,7 +149,7 @@ async def process_object(
             detail=f"Cannot queue object in state {obj.state.value}"
         )
     
-    # Добавляем задачу в очередь
+    # Add task to queue
     operations_list = [op.value for op in request.operations] if request.operations else []
     task_id = await queue_manager.enqueue_task({
         "obj_id": str(obj.id),
@@ -172,14 +173,14 @@ async def get_progress(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    Получает текущий прогресс обработки объекта
+    Get current object processing progress
     
-    Возвращает детальную информацию о состоянии обработки:
-    - Текущее состояние
-    - Прогресс выполнения операций
-    - Статус каждой операции
-    - Ссылки на артефакты в S3
-    - Информацию об ошибках (если есть)
+    Returns detailed information about processing state:
+    - Current state
+    - Operation execution progress
+    - Each operation status
+    - Links to artifacts in S3
+    - Error information (if any)
     """
     result = await session.execute(
         select(ProcessingObject).where(ProcessingObject.id == object_id)
@@ -206,11 +207,11 @@ async def get_progress(
 @app.get("/api/v1/progress/{object_id}/stream", tags=["Progress"])
 async def stream_progress(object_id: str):
     """
-    Стримит обновления прогресса в реальном времени через Server-Sent Events (SSE)
+    Stream progress updates in real-time via Server-Sent Events (SSE)
     
-    Подключитесь к этому endpoint для получения обновлений в реальном времени.
+    Connect to this endpoint to receive real-time updates.
     
-    Пример использования в JavaScript:
+    JavaScript usage example:
     ```javascript
     const eventSource = new EventSource('/api/v1/progress/{object_id}/stream');
     eventSource.onmessage = (event) => {
@@ -246,12 +247,12 @@ async def stream_progress(object_id: str):
 @app.get("/api/v1/status", response_model=StatusResponse, tags=["System"])
 async def get_status():
     """
-    Получает статус системы обработки
+    Get processing system status
     
-    Возвращает информацию о:
-    - Размере очереди задач
-    - Количестве активных воркеров
-    - Максимальном количестве воркеров
+    Returns information about:
+    - Task queue size
+    - Number of active workers
+    - Maximum number of workers
     """
     queue_size = await queue_manager.get_queue_size()
     active_workers = await queue_manager.get_active_workers_count()
@@ -269,9 +270,9 @@ async def get_object_by_identifier(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    Получает объект по его идентификатору
+    Get object by its identifier
     
-    Возвращает полную информацию об объекте включая прогресс обработки
+    Returns complete object information including processing progress
     """
     result = await session.execute(
         select(ProcessingObject).where(ProcessingObject.identifier == identifier)
@@ -303,12 +304,12 @@ async def list_objects(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    Получает список объектов с фильтрацией и пагинацией
+    Get object list with filtering and pagination
     
-    Параметры:
-    - state: Фильтр по состоянию (необязательно)
-    - limit: Максимальное количество объектов (по умолчанию 100)
-    - offset: Смещение для пагинации (по умолчанию 0)
+    Parameters:
+    - state: State filter (optional)
+    - limit: Maximum number of objects (default 100)
+    - offset: Pagination offset (default 0)
     """
     query = select(ProcessingObject)
     
@@ -349,9 +350,9 @@ async def cancel_processing(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    Отменяет обработку объекта (если возможно)
+    Cancel object processing (if possible)
     
-    Объект может быть отменен только если он находится в состояниях:
+    Object can be cancelled only if it's in states:
     - PENDING
     - QUEUED
     - PROCESSING
@@ -388,10 +389,10 @@ async def retry_processing(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    Повторяет обработку объекта после ошибки
+    Retry object processing after error
     
-    Объект может быть повторно обработан только если он в состоянии FAILED.
-    Автоматически определяет незавершенные операции и добавляет их в очередь.
+    Object can be retried only if it's in FAILED state.
+    Automatically determines incomplete operations and adds them to queue.
     """
     result = await session.execute(
         select(ProcessingObject).where(ProcessingObject.id == object_id)
@@ -409,13 +410,13 @@ async def retry_processing(
         obj.error_message = None
         await session.commit()
         
-        # Определяем операции, которые не были завершены
+        # Determine operations that were not completed
         pending_operations = []
         for op_type in [op.value for op in OperationType]:
             if not obj.operations_status.get(op_type, {}).get("completed"):
                 pending_operations.append(op_type)
         
-        # Добавляем задачу обратно в очередь
+        # Add task back to queue
         task_id = await queue_manager.enqueue_task({
             "obj_id": str(obj.id),
             "operations": pending_operations
@@ -441,9 +442,9 @@ async def delete_object(
     session: AsyncSession = Depends(get_session)
 ):
     """
-    Удаляет объект из базы данных
+    Delete object from database
     
-    Объект не может быть удален если он в состоянии PROCESSING
+    Object cannot be deleted if it's in PROCESSING state
     """
     result = await session.execute(
         select(ProcessingObject).where(ProcessingObject.id == object_id)
@@ -453,7 +454,7 @@ async def delete_object(
     if not obj:
         raise HTTPException(status_code=404, detail="Object not found")
     
-    # Проверяем, что объект не обрабатывается
+    # Check that object is not being processed
     if obj.state == ProcessState.PROCESSING:
         raise HTTPException(
             status_code=400,
@@ -474,18 +475,18 @@ async def delete_object(
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 async def health_check():
     """
-    Проверка здоровья сервиса
+    Service health check
     
-    Используется для health checks в Kubernetes/Docker
-    Проверяет:
-    - Доступность Redis
-    - Количество активных воркеров
+    Used for health checks in Kubernetes/Docker
+    Checks:
+    - Redis availability
+    - Number of active workers
     """
     try:
-        # Проверяем Redis
+        # Check Redis
         redis_ok = await queue_manager.redis_client.ping()
         
-        # Проверяем количество активных воркеров
+        # Check active workers count
         active_workers = await queue_manager.get_active_workers_count()
         
         return HealthResponse(
@@ -504,11 +505,11 @@ async def health_check():
 
 @app.get("/", tags=["System"])
 async def root():
-    """Корневой endpoint - информация об API"""
+    """Root endpoint - API information"""
     return {
         "name": "Object Processing API",
         "version": "1.0.0",
-        "description": "Асинхронное API для обработки объектов",
+        "description": "Asynchronous API for object processing",
         "docs": "/docs",
         "health": "/health"
     }

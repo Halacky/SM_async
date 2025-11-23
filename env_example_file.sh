@@ -9,7 +9,6 @@ S3_BUCKET=my-artifacts-bucket
 S3_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
-# Для LocalStack (необязательно)
 # AWS_ENDPOINT_URL=http://localhost:4566
 
 # Worker Configuration

@@ -1,5 +1,6 @@
+# Updated queue_manager.py with English comments
 """
-Менеджер очереди задач
+Task queue manager
 """
 import redis.asyncio as redis
 from config import settings
@@ -14,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 class QueueManager:
-    """Менеджер очереди задач на основе Redis"""
+    """Redis-based task queue manager"""
     
     def __init__(self):
-        """Инициализация менеджера очереди"""
+        """Initialize queue manager"""
         self.redis_client: Optional[redis.Redis] = None
         self.queue_key = "processing_queue"
         self.active_workers_key = "active_workers"
@@ -26,14 +27,14 @@ class QueueManager:
         logger.info(f"QueueManager initialized with max_workers={self.max_workers}")
     
     async def connect(self):
-        """Подключается к Redis"""
+        """Connect to Redis"""
         try:
             self.redis_client = redis.from_url(
                 settings.REDIS_URL,
                 encoding="utf-8",
                 decode_responses=True
             )
-            # Проверяем подключение
+            # Test connection
             await self.redis_client.ping()
             logger.info("Successfully connected to Redis")
         except Exception as e:
@@ -41,20 +42,20 @@ class QueueManager:
             raise
     
     async def disconnect(self):
-        """Отключается от Redis"""
+        """Disconnect from Redis"""
         if self.redis_client:
             await self.redis_client.close()
             logger.info("Disconnected from Redis")
     
     async def enqueue_task(self, task_data: Dict[str, Any]) -> str:
         """
-        Добавляет задачу в очередь
+        Add task to queue
         
         Args:
-            task_data: Данные задачи (должны содержать obj_id и operations)
+            task_data: Task data (must contain obj_id and operations)
             
         Returns:
-            ID задачи
+            Task ID
         """
         task_id = str(uuid.uuid4())
         task_data["task_id"] = task_id
@@ -67,10 +68,10 @@ class QueueManager:
     
     async def dequeue_task(self) -> Optional[Dict[str, Any]]:
         """
-        Извлекает задачу из очереди (FIFO)
+        Get task from queue (FIFO)
         
         Returns:
-            Данные задачи или None если очередь пуста
+            Task data or None if queue is empty
         """
         task_json = await self.redis_client.lpop(self.queue_key)
         
@@ -83,73 +84,73 @@ class QueueManager:
     
     async def get_queue_size(self) -> int:
         """
-        Возвращает размер очереди
+        Get queue size
         
         Returns:
-            Количество задач в очереди
+            Number of tasks in queue
         """
         size = await self.redis_client.llen(self.queue_key)
         return size
     
     async def get_active_workers_count(self) -> int:
         """
-        Возвращает количество активных воркеров
+        Get active workers count
         
         Returns:
-            Количество активных воркеров
+            Number of active workers
         """
         count = await self.redis_client.scard(self.active_workers_key)
         return count
     
     async def register_worker(self, worker_id: str):
         """
-        Регистрирует активного воркера
+        Register active worker
         
         Args:
-            worker_id: ID воркера
+            worker_id: Worker ID
         """
         await self.redis_client.sadd(self.active_workers_key, worker_id)
         logger.debug(f"Registered worker {worker_id}")
     
     async def unregister_worker(self, worker_id: str):
         """
-        Удаляет воркера из активных
+        Remove worker from active workers
         
         Args:
-            worker_id: ID воркера
+            worker_id: Worker ID
         """
         await self.redis_client.srem(self.active_workers_key, worker_id)
         logger.debug(f"Unregistered worker {worker_id}")
     
     async def get_active_workers(self) -> set:
         """
-        Возвращает список активных воркеров
+        Get list of active workers
         
         Returns:
-            Множество ID активных воркеров
+            Set of active worker IDs
         """
         workers = await self.redis_client.smembers(self.active_workers_key)
         return workers
     
     async def publish_progress(self, obj_id: str, progress_data: Dict[str, Any]):
         """
-        Публикует обновление прогресса
+        Publish progress update
         
         Args:
-            obj_id: ID объекта
-            progress_data: Данные прогресса
+            obj_id: Object ID
+            progress_data: Progress data
         """
-        # Сохраняем последний прогресс с TTL
+        # Save last progress with TTL
         progress_key = f"{self.progress_key_prefix}{obj_id}"
         progress_json = json.dumps(progress_data)
         
         await self.redis_client.setex(
             progress_key,
-            3600,  # TTL 1 час
+            3600,  # TTL 1 hour
             progress_json
         )
         
-        # Публикуем в канал для real-time подписчиков
+        # Publish to channel for real-time subscribers
         channel = f"progress:{obj_id}"
         await self.redis_client.publish(channel, progress_json)
         
@@ -157,13 +158,13 @@ class QueueManager:
     
     async def get_progress(self, obj_id: str) -> Optional[Dict[str, Any]]:
         """
-        Получает последний сохраненный прогресс
+        Get last saved progress
         
         Args:
-            obj_id: ID объекта
+            obj_id: Object ID
             
         Returns:
-            Данные прогресса или None
+            Progress data or None
         """
         progress_key = f"{self.progress_key_prefix}{obj_id}"
         progress_json = await self.redis_client.get(progress_key)
@@ -175,13 +176,13 @@ class QueueManager:
     
     async def subscribe_to_progress(self, obj_id: str):
         """
-        Подписывается на обновления прогресса
+        Subscribe to progress updates
         
         Args:
-            obj_id: ID объекта
+            obj_id: Object ID
             
         Returns:
-            PubSub объект для получения сообщений
+            PubSub object for receiving messages
         """
         pubsub = self.redis_client.pubsub()
         channel = f"progress:{obj_id}"
@@ -191,11 +192,11 @@ class QueueManager:
         return pubsub
     
     async def clear_queue(self):
-        """Очищает очередь задач (для тестирования)"""
+        """Clear task queue (for testing)"""
         await self.redis_client.delete(self.queue_key)
         logger.warning("Queue cleared")
     
     async def clear_workers(self):
-        """Очищает список активных воркеров (для тестирования)"""
+        """Clear active workers list (for testing)"""
         await self.redis_client.delete(self.active_workers_key)
         logger.warning("Active workers list cleared")

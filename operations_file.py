@@ -1,5 +1,6 @@
+# Updated operations.py with English comments
 """
-Операции для обработки объектов
+Operations for object processing
 """
 from abc import ABC, abstractmethod
 from typing import Dict, Any
@@ -14,46 +15,46 @@ logger = logging.getLogger(__name__)
 
 
 class Operation(ABC):
-    """Базовый класс для всех операций"""
+    """Base class for all operations"""
     
     def __init__(self, s3_service: S3Service):
         """
-        Инициализация операции
+        Initialize operation
         
         Args:
-            s3_service: Сервис для работы с S3
+            s3_service: S3 service
         """
         self.s3_service = s3_service
     
     @abstractmethod
     async def execute(self, obj_data: Dict[str, Any], identifier: str) -> Dict[str, Any]:
         """
-        Выполняет операцию
+        Execute operation
         
         Args:
-            obj_data: Данные объекта
-            identifier: Идентификатор объекта
+            obj_data: Object data
+            identifier: Object identifier
             
         Returns:
-            Результат выполнения операции
+            Operation execution result
         """
         pass
     
     @abstractmethod
     def get_name(self) -> str:
-        """Возвращает имя операции"""
+        """Get operation name"""
         pass
     
     async def _save_result_to_s3(self, identifier: str, result: Dict[str, Any]) -> str:
         """
-        Сохраняет результат операции в S3
+        Save operation result to S3
         
         Args:
-            identifier: Идентификатор объекта
-            result: Результат для сохранения
+            identifier: Object identifier
+            result: Result to save
             
         Returns:
-            URL сохраненного артефакта
+            URL of saved artifact
         """
         operation_name = self.get_name()
         key = f"{identifier}/{operation_name}_result.json"
@@ -64,22 +65,22 @@ class Operation(ABC):
 
 
 class ValidateOperation(Operation):
-    """Операция валидации объекта"""
+    """Object validation operation"""
     
     def get_name(self) -> str:
         return OperationType.VALIDATE.value
     
     async def execute(self, obj_data: Dict[str, Any], identifier: str) -> Dict[str, Any]:
         """
-        Выполняет валидацию объекта
-        Проверяет схему, ограничения, целостность данных
+        Execute object validation
+        Check schema, constraints, data integrity
         """
         logger.info(f"Starting validation for object {identifier}")
         
-        # Имитация работы валидатора
+        # Simulate validator work
         await asyncio.sleep(2)
         
-        # Результат валидации
+        # Validation result
         result = {
             "status": "valid",
             "checks_performed": ["schema_validation", "constraints_check", "integrity_check"],
@@ -87,7 +88,7 @@ class ValidateOperation(Operation):
             "warnings": []
         }
         
-        # Сохраняем результат в S3
+        # Save result to S3
         s3_url = await self._save_result_to_s3(identifier, result)
         
         logger.info(f"Validation completed for object {identifier}")
@@ -100,22 +101,22 @@ class ValidateOperation(Operation):
 
 
 class TransformOperation(Operation):
-    """Операция трансформации данных"""
+    """Data transformation operation"""
     
     def get_name(self) -> str:
         return OperationType.TRANSFORM.value
     
     async def execute(self, obj_data: Dict[str, Any], identifier: str) -> Dict[str, Any]:
         """
-        Выполняет трансформацию данных объекта
-        Преобразует данные в новый формат
+        Execute data transformation
+        Transform data to new format
         """
         logger.info(f"Starting transformation for object {identifier}")
         
-        # Имитация работы трансформации
+        # Simulate transformation work
         await asyncio.sleep(3)
         
-        # Результат трансформации
+        # Transformation result
         result = {
             "status": "transformed",
             "source_format": "v1",
@@ -124,7 +125,7 @@ class TransformOperation(Operation):
             "transformation_rules_applied": 15
         }
         
-        # Сохраняем результат в S3
+        # Save result to S3
         s3_url = await self._save_result_to_s3(identifier, result)
         
         logger.info(f"Transformation completed for object {identifier}")
@@ -137,22 +138,22 @@ class TransformOperation(Operation):
 
 
 class EnrichOperation(Operation):
-    """Операция обогащения метаданными"""
+    """Metadata enrichment operation"""
     
     def get_name(self) -> str:
         return OperationType.ENRICH.value
     
     async def execute(self, obj_data: Dict[str, Any], identifier: str) -> Dict[str, Any]:
         """
-        Выполняет обогащение объекта дополнительными данными
-        Добавляет метаданные, теги, связи
+        Execute object enrichment with additional data
+        Add metadata, tags, relations
         """
         logger.info(f"Starting enrichment for object {identifier}")
         
-        # Имитация работы обогащения
+        # Simulate enrichment work
         await asyncio.sleep(2.5)
         
-        # Результат обогащения
+        # Enrichment result
         result = {
             "status": "enriched",
             "enriched_fields": ["metadata", "tags", "relations", "classifications"],
@@ -161,7 +162,7 @@ class EnrichOperation(Operation):
             "relations_found": 5
         }
         
-        # Сохраняем результат в S3
+        # Save result to S3
         s3_url = await self._save_result_to_s3(identifier, result)
         
         logger.info(f"Enrichment completed for object {identifier}")
@@ -174,22 +175,22 @@ class EnrichOperation(Operation):
 
 
 class AnalyzeOperation(Operation):
-    """Операция анализа данных"""
+    """Data analysis operation"""
     
     def get_name(self) -> str:
         return OperationType.ANALYZE.value
     
     async def execute(self, obj_data: Dict[str, Any], identifier: str) -> Dict[str, Any]:
         """
-        Выполняет анализ данных объекта
-        Ищет паттерны, аномалии, делает выводы
+        Execute data analysis
+        Find patterns, anomalies, make conclusions
         """
         logger.info(f"Starting analysis for object {identifier}")
         
-        # Имитация работы анализа
+        # Simulate analysis work
         await asyncio.sleep(4)
         
-        # Результат анализа
+        # Analysis result
         result = {
             "status": "analyzed",
             "insights": [
@@ -205,7 +206,7 @@ class AnalyzeOperation(Operation):
             ]
         }
         
-        # Сохраняем результат в S3
+        # Save result to S3
         s3_url = await self._save_result_to_s3(identifier, result)
         
         logger.info(f"Analysis completed for object {identifier}")
@@ -218,22 +219,22 @@ class AnalyzeOperation(Operation):
 
 
 class ExportOperation(Operation):
-    """Операция экспорта результатов"""
+    """Result export operation"""
     
     def get_name(self) -> str:
         return OperationType.EXPORT.value
     
     async def execute(self, obj_data: Dict[str, Any], identifier: str) -> Dict[str, Any]:
         """
-        Выполняет экспорт результатов обработки
-        Подготавливает данные для внешних систем
+        Execute processing result export
+        Prepare data for external systems
         """
         logger.info(f"Starting export for object {identifier}")
         
-        # Имитация работы экспорта
+        # Simulate export work
         await asyncio.sleep(2)
         
-        # Результат экспорта
+        # Export result
         result = {
             "status": "exported",
             "export_format": "json",
@@ -248,7 +249,7 @@ class ExportOperation(Operation):
             ]
         }
         
-        # Сохраняем результат в S3
+        # Save result to S3
         s3_url = await self._save_result_to_s3(identifier, result)
         
         logger.info(f"Export completed for object {identifier}")
@@ -261,7 +262,7 @@ class ExportOperation(Operation):
 
 
 class OperationFactory:
-    """Фабрика для создания операций"""
+    """Factory for creating operations"""
     
     _operations_map = {
         OperationType.VALIDATE.value: ValidateOperation,
@@ -274,17 +275,17 @@ class OperationFactory:
     @staticmethod
     def create_operation(operation_type: str, s3_service: S3Service) -> Operation:
         """
-        Создает операцию по типу
+        Create operation by type
         
         Args:
-            operation_type: Тип операции
-            s3_service: Сервис S3
+            operation_type: Operation type
+            s3_service: S3 service
             
         Returns:
-            Экземпляр операции
+            Operation instance
             
         Raises:
-            ValueError: Если тип операции неизвестен
+            ValueError: If operation type is unknown
         """
         operation_class = OperationFactory._operations_map.get(operation_type)
         
@@ -295,5 +296,5 @@ class OperationFactory:
     
     @staticmethod
     def get_available_operations() -> list:
-        """Возвращает список доступных операций"""
+        """Get list of available operations"""
         return list(OperationFactory._operations_map.keys())

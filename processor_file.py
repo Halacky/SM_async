@@ -1,5 +1,6 @@
+# Updated processor.py with English comments
 """
-Процессор для обработки объектов
+Processor for object processing
 """
 from typing import List, Optional, Callable
 import logging
@@ -15,15 +16,15 @@ logger = logging.getLogger(__name__)
 
 
 class ObjectProcessor:
-    """Процессор для выполнения операций над объектами"""
+    """Processor for executing operations on objects"""
     
     def __init__(self, session: AsyncSession, s3_service: S3Service):
         """
-        Инициализация процессора
+        Initialize processor
         
         Args:
-            session: Сессия базы данных
-            s3_service: Сервис для работы с S3
+            session: Database session
+            s3_service: S3 service
         """
         self.session = session
         self.s3_service = s3_service
@@ -36,14 +37,14 @@ class ObjectProcessor:
         progress_callback: Optional[Callable] = None
     ):
         """
-        Обрабатывает объект, выполняя указанные операции
+        Processes object by executing specified operations
         
         Args:
-            obj_id: ID объекта
-            operations: Список операций для выполнения
-            progress_callback: Callback для отправки обновлений прогресса
+            obj_id: Object ID
+            operations: List of operations to execute
+            progress_callback: Callback for progress updates
         """
-        # Получаем объект из БД
+        # Get object from database
         result = await self.session.execute(
             select(ProcessingObject).where(ProcessingObject.id == obj_id)
         )
@@ -55,11 +56,11 @@ class ObjectProcessor:
         
         logger.info(f"Starting processing for object {obj.identifier} (ID: {obj_id})")
         
-        # Создаем state machine с текущим состоянием
+        # Create state machine with current state
         state_machine = ObjectStateMachine(initial_state=obj.state.value)
         
         try:
-            # Переводим в состояние PROCESSING
+            # Transition to PROCESSING state
             if state_machine.can_transition('start_processing'):
                 state_machine.start_processing()
                 obj.state = ProcessState.PROCESSING
@@ -69,13 +70,13 @@ class ObjectProcessor:
                 logger.warning(f"Cannot start processing for object {obj.identifier} in state {obj.state}")
                 return
             
-            # Выполняем операции последовательно
+            # Execute operations sequentially
             total_operations = len(operations)
             
             for idx, operation_type in enumerate(operations):
                 logger.info(f"Processing operation {operation_type} ({idx + 1}/{total_operations}) for {obj.identifier}")
                 
-                # Обновляем прогресс
+                # Update progress
                 obj.current_operation = operation_type
                 obj.progress = {
                     "current": idx + 1,
@@ -84,17 +85,17 @@ class ObjectProcessor:
                 }
                 await self.session.commit()
                 
-                # Отправляем обновление прогресса через callback
+                # Send progress update via callback
                 if progress_callback:
                     await progress_callback(obj.to_dict())
                 
-                # Проверяем, не выполнена ли уже операция
+                # Check if operation is already completed
                 operations_status = obj.operations_status or {}
                 if operations_status.get(operation_type, {}).get("completed"):
                     logger.info(f"Operation {operation_type} already completed for {obj.identifier}, skipping")
                     continue
                 
-                # Создаем и выполняем операцию
+                # Create and execute operation
                 try:
                     operation = self.operation_factory.create_operation(
                         operation_type,
@@ -103,11 +104,11 @@ class ObjectProcessor:
                     
                     result = await operation.execute(obj.to_dict(), obj.identifier)
                     
-                    # Сохраняем результат операции
+                    # Save operation result
                     operations_status[operation_type] = result
                     obj.operations_status = operations_status
                     
-                    # Обновляем ссылки на артефакты в S3
+                    # Update S3 artifact links
                     s3_artifacts = obj.s3_artifacts or {}
                     s3_artifacts[operation_type] = result.get("s3_url")
                     obj.s3_artifacts = s3_artifacts
@@ -120,7 +121,7 @@ class ObjectProcessor:
                     logger.error(f"Error executing operation {operation_type} for {obj.identifier}: {op_error}")
                     raise
             
-            # Все операции завершены успешно
+            # All operations completed successfully
             if state_machine.can_transition('complete'):
                 state_machine.complete()
                 obj.state = ProcessState.COMPLETED
@@ -140,7 +141,7 @@ class ObjectProcessor:
         except Exception as e:
             logger.error(f"Error processing object {obj.identifier}: {e}", exc_info=True)
             
-            # Переводим в состояние FAILED
+            # Transition to FAILED state
             if state_machine.can_transition('fail'):
                 state_machine.fail()
                 obj.state = ProcessState.FAILED
@@ -154,13 +155,13 @@ class ObjectProcessor:
     
     async def get_object_status(self, obj_id: str) -> Optional[dict]:
         """
-        Получает текущий статус обработки объекта
+        Gets current object processing status
         
         Args:
-            obj_id: ID объекта
+            obj_id: Object ID
             
         Returns:
-            Статус объекта или None если не найден
+            Object status or None if not found
         """
         result = await self.session.execute(
             select(ProcessingObject).where(ProcessingObject.id == obj_id)

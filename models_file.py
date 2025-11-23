@@ -1,5 +1,6 @@
+# Updated models.py with English comments and strings
 """
-Модели базы данных
+Database models
 """
 from sqlalchemy import Column, String, JSON, DateTime, Enum as SQLEnum
 from sqlalchemy.ext.declarative import declarative_base
@@ -13,7 +14,7 @@ Base = declarative_base()
 
 
 class ProcessState(str, enum.Enum):
-    """Состояния обработки объекта"""
+    """Object processing states"""
     PENDING = "pending"
     QUEUED = "queued"
     PROCESSING = "processing"
@@ -23,7 +24,7 @@ class ProcessState(str, enum.Enum):
 
 
 class OperationType(str, enum.Enum):
-    """Типы операций над объектом"""
+    """Object operation types"""
     VALIDATE = "validate"
     TRANSFORM = "transform"
     ENRICH = "enrich"
@@ -32,7 +33,7 @@ class OperationType(str, enum.Enum):
 
 
 class ProcessingObject(Base):
-    """Модель объекта для обработки"""
+    """Processing object model"""
     
     __tablename__ = "processing_objects"
     
@@ -40,22 +41,22 @@ class ProcessingObject(Base):
     identifier = Column(String, index=True, nullable=False)
     state = Column(SQLEnum(ProcessState), default=ProcessState.PENDING, nullable=False, index=True)
     
-    # Статус выполнения операций
+    # Operation execution status
     # Format: {"validate": {"completed": True, "s3_url": "...", "result": {...}}, ...}
     operations_status = Column(JSON, default=dict, nullable=False)
     
-    # Ссылки на артефакты в S3
+    # Links to artifacts in S3
     # Format: {"validate": "s3://bucket/path", "transform": "s3://bucket/path", ...}
     s3_artifacts = Column(JSON, default=dict, nullable=False)
     
-    # Текущая операция
+    # Current operation
     current_operation = Column(String, nullable=True)
     
-    # Прогресс выполнения
+    # Execution progress
     # Format: {"current": 2, "total": 5, "message": "Processing..."}
     progress = Column(JSON, default={"current": 0, "total": 0, "message": ""}, nullable=False)
     
-    # Сообщение об ошибке (если есть)
+    # Error message (if any)
     error_message = Column(String, nullable=True)
     
     # Timestamps
@@ -63,7 +64,7 @@ class ProcessingObject(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     def to_dict(self):
-        """Преобразует модель в словарь"""
+        """Converts model to dictionary"""
         return {
             "id": str(self.id),
             "identifier": self.identifier,

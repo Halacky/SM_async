@@ -1,5 +1,6 @@
+# Updated s3_service.py with English comments
 """
-Сервис для работы с S3
+S3 service
 """
 import boto3
 from botocore.exceptions import ClientError
@@ -12,22 +13,22 @@ logger = logging.getLogger(__name__)
 
 
 class S3Service:
-    """Сервис для работы с Amazon S3 или совместимыми хранилищами"""
+    """Service for working with Amazon S3 or compatible storage"""
     
     def __init__(self):
-        """Инициализация S3 клиента"""
+        """Initialize S3 client"""
         client_config = {
             'region_name': settings.S3_REGION,
         }
         
-        # Добавляем credentials если заданы
+        # Add credentials if provided
         if settings.AWS_ACCESS_KEY_ID:
             client_config['aws_access_key_id'] = settings.AWS_ACCESS_KEY_ID
         
         if settings.AWS_SECRET_ACCESS_KEY:
             client_config['aws_secret_access_key'] = settings.AWS_SECRET_ACCESS_KEY
         
-        # Для LocalStack
+        # For LocalStack
         if settings.AWS_ENDPOINT_URL:
             client_config['endpoint_url'] = settings.AWS_ENDPOINT_URL
         
@@ -38,7 +39,7 @@ class S3Service:
         self._ensure_bucket_exists()
     
     def _ensure_bucket_exists(self):
-        """Проверяет существование bucket и создает если нужно"""
+        """Check bucket existence and create if needed"""
         try:
             self.s3_client.head_bucket(Bucket=self.bucket)
             logger.info(f"Bucket {self.bucket} exists")
@@ -59,15 +60,15 @@ class S3Service:
     
     async def upload_artifact(self, key: str, data: bytes, metadata: dict = None) -> Optional[str]:
         """
-        Загружает артефакт в S3
+        Upload artifact to S3
         
         Args:
-            key: Ключ объекта в S3
-            data: Данные для загрузки
-            metadata: Метаданные объекта
+            key: Object key in S3
+            data: Data to upload
+            metadata: Object metadata
             
         Returns:
-            URL загруженного объекта или None в случае ошибки
+            Uploaded object URL or None on error
         """
         try:
             put_object_args = {
@@ -91,13 +92,13 @@ class S3Service:
     
     async def download_artifact(self, key: str) -> Optional[bytes]:
         """
-        Скачивает артефакт из S3
+        Download artifact from S3
         
         Args:
-            key: Ключ объекта в S3
+            key: Object key in S3
             
         Returns:
-            Данные объекта или None в случае ошибки
+            Object data or None on error
         """
         try:
             response = self.s3_client.get_object(Bucket=self.bucket, Key=key)
@@ -111,13 +112,13 @@ class S3Service:
     
     async def delete_artifact(self, key: str) -> bool:
         """
-        Удаляет артефакт из S3
+        Delete artifact from S3
         
         Args:
-            key: Ключ объекта в S3
+            key: Object key in S3
             
         Returns:
-            True если успешно удалено
+            True if successfully deleted
         """
         try:
             self.s3_client.delete_object(Bucket=self.bucket, Key=key)
@@ -130,13 +131,13 @@ class S3Service:
     
     async def list_artifacts(self, prefix: str) -> list:
         """
-        Получает список артефактов по префиксу
+        Get artifact list by prefix
         
         Args:
-            prefix: Префикс для поиска
+            prefix: Search prefix
             
         Returns:
-            Список ключей объектов
+            List of object keys
         """
         try:
             response = self.s3_client.list_objects_v2(
@@ -157,14 +158,14 @@ class S3Service:
     
     def get_presigned_url(self, key: str, expiration: int = 3600) -> Optional[str]:
         """
-        Генерирует presigned URL для скачивания
+        Generate presigned URL for download
         
         Args:
-            key: Ключ объекта в S3
-            expiration: Время жизни URL в секундах
+            key: Object key in S3
+            expiration: URL expiration time in seconds
             
         Returns:
-            Presigned URL или None в случае ошибки
+            Presigned URL or None on error
         """
         try:
             url = self.s3_client.generate_presigned_url(

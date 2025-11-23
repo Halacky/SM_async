@@ -1,12 +1,13 @@
+# Updated database.py with English comments
 """
-Настройка подключения к базе данных
+Database connection setup
 """
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from config import settings
 from models import Base
 
 
-# Создаем асинхронный engine
+# Create async engine
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=True,
@@ -16,7 +17,7 @@ engine = create_async_engine(
     max_overflow=20
 )
 
-# Создаем фабрику сессий
+# Create session factory
 async_session_maker = async_sessionmaker(
     engine,
     class_=AsyncSession,
@@ -28,8 +29,8 @@ async_session_maker = async_sessionmaker(
 
 async def get_session() -> AsyncSession:
     """
-    Dependency для получения сессии БД
-    Используется в FastAPI endpoints
+    Dependency for getting database session
+    Used in FastAPI endpoints
     """
     async with async_session_maker() as session:
         try:
@@ -40,8 +41,8 @@ async def get_session() -> AsyncSession:
 
 async def init_db():
     """
-    Инициализация базы данных
-    Создает все таблицы
+    Initialize database
+    Creates all tables
     """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -49,6 +50,6 @@ async def init_db():
 
 async def close_db():
     """
-    Закрытие подключения к БД
+    Close database connection
     """
     await engine.dispose()

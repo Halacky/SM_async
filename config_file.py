@@ -1,12 +1,13 @@
+# Updated config.py with English comments
 """
-Конфигурация приложения
+Application configuration
 """
 from pydantic_settings import BaseSettings
 from typing import Optional
 
 
 class Settings(BaseSettings):
-    """Настройки приложения"""
+    """Application settings"""
     
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://user:pass@localhost/dbname"
@@ -19,7 +20,7 @@ class Settings(BaseSettings):
     S3_REGION: str = "us-east-1"
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
-    AWS_ENDPOINT_URL: Optional[str] = None  # Для LocalStack
+    AWS_ENDPOINT_URL: Optional[str] = None  # For LocalStack
     
     # Worker settings
     MAX_PARALLEL_WORKERS: int = 3

@@ -1,5 +1,6 @@
+# Updated updated_schemas.py with English comments
 """
-Pydantic схемы для API (обновлённая версия с флагами пересчёта)
+Pydantic schemas for API (updated version with recalculation flags)
 """
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -8,37 +9,37 @@ from enum import Enum
 
 
 class RecalculationMode(str, Enum):
-    """Режим пересчёта операций"""
-    NONE = "none"  # Использовать существующие артефакты
-    REQUESTED_ONLY = "requested_only"  # Пересчитать только запрошенные операции
-    WITH_DEPENDENCIES = "with_dependencies"  # Пересчитать запрошенные + все зависимые от них
+    """Operation recalculation mode"""
+    NONE = "none"  # Use existing artifacts
+    REQUESTED_ONLY = "requested_only"  # Recalculate only requested operations
+    WITH_DEPENDENCIES = "with_dependencies"  # Recalculate requested + all dependent operations
 
 
 class ProcessingRequest(BaseModel):
-    """Запрос на обработку объекта"""
+    """Object processing request"""
     
     identifier: str = Field(
         ...,
-        description="Идентификатор объекта для обработки",
+        description="Object identifier for processing",
         example="object-123"
     )
     operations: List[OperationType] = Field(
         default_factory=list,
-        description="Список операций для выполнения (пустой список = все операции пропускаются)",
+        description="List of operations to execute (empty list = skip all operations)",
         example=["validate", "transform", "analyze"]
     )
     recalculation_mode: RecalculationMode = Field(
         default=RecalculationMode.NONE,
         description=(
-            "Режим пересчёта: "
-            "'none' - использовать существующие артефакты, "
-            "'requested_only' - пересчитать только запрошенные операции, "
-            "'with_dependencies' - пересчитать запрошенные и все зависимые от них"
+            "Recalculation mode: "
+            "'none' - use existing artifacts, "
+            "'requested_only' - recalculate only requested operations, "
+            "'with_dependencies' - recalculate requested and all dependent operations"
         )
     )
     force_recalculate: List[OperationType] = Field(
         default_factory=list,
-        description="Список операций для принудительного пересчёта (игнорируя существующие артефакты)"
+        description="List of operations to force recalculate (ignoring existing artifacts)"
     )
     
     class Config:
@@ -53,20 +54,20 @@ class ProcessingRequest(BaseModel):
 
 
 class ProcessingResponse(BaseModel):
-    """Ответ на запрос обработки"""
+    """Processing request response"""
     
-    id: str = Field(..., description="UUID объекта в БД")
-    identifier: str = Field(..., description="Идентификатор объекта")
-    state: ProcessState = Field(..., description="Текущее состояние объекта")
-    task_id: Optional[str] = Field(None, description="ID задачи в очереди")
-    message: str = Field(..., description="Информационное сообщение")
+    id: str = Field(..., description="Object UUID in database")
+    identifier: str = Field(..., description="Object identifier")
+    state: ProcessState = Field(..., description="Current object state")
+    task_id: Optional[str] = Field(None, description="Task ID in queue")
+    message: str = Field(..., description="Information message")
     planned_operations: List[str] = Field(
         default_factory=list,
-        description="Список операций которые будут выполнены (с учетом зависимостей)"
+        description="List of operations that will be executed (considering dependencies)"
     )
     skipped_operations: List[str] = Field(
         default_factory=list,
-        description="Список операций которые будут пропущены (уже выполнены)"
+        description="List of operations that will be skipped (already executed)"
     )
     
     class Config:
@@ -84,18 +85,18 @@ class ProcessingResponse(BaseModel):
 
 
 class ProgressResponse(BaseModel):
-    """Информация о прогрессе обработки"""
+    """Processing progress information"""
     
-    id: str = Field(..., description="UUID объекта")
-    identifier: str = Field(..., description="Идентификатор объекта")
-    state: str = Field(..., description="Текущее состояние")
-    current_operation: Optional[str] = Field(None, description="Текущая операция")
-    progress: Dict[str, Any] = Field(..., description="Детали прогресса")
-    operations_status: Dict[str, Any] = Field(..., description="Статус выполнения операций")
-    s3_artifacts: Dict[str, Any] = Field(..., description="Ссылки на артефакты в S3")
-    error_message: Optional[str] = Field(None, description="Сообщение об ошибке")
-    created_at: Optional[str] = Field(None, description="Дата создания")
-    updated_at: Optional[str] = Field(None, description="Дата обновления")
+    id: str = Field(..., description="Object UUID")
+    identifier: str = Field(..., description="Object identifier")
+    state: str = Field(..., description="Current state")
+    current_operation: Optional[str] = Field(None, description="Current operation")
+    progress: Dict[str, Any] = Field(..., description="Progress details")
+    operations_status: Dict[str, Any] = Field(..., description="Operation execution status")
+    s3_artifacts: Dict[str, Any] = Field(..., description="Links to artifacts in S3")
+    error_message: Optional[str] = Field(None, description="Error message")
+    created_at: Optional[str] = Field(None, description="Creation date")
+    updated_at: Optional[str] = Field(None, description="Update date")
     
     class Config:
         json_schema_extra = {
@@ -126,11 +127,11 @@ class ProgressResponse(BaseModel):
 
 
 class StatusResponse(BaseModel):
-    """Статус системы обработки"""
+    """System processing status"""
     
-    queue_size: int = Field(..., description="Количество задач в очереди")
-    active_workers: int = Field(..., description="Количество активных воркеров")
-    max_workers: int = Field(..., description="Максимальное количество воркеров")
+    queue_size: int = Field(..., description="Number of tasks in queue")
+    active_workers: int = Field(..., description="Number of active workers")
+    max_workers: int = Field(..., description="Maximum number of workers")
     
     class Config:
         json_schema_extra = {
@@ -143,10 +144,10 @@ class StatusResponse(BaseModel):
 
 
 class CancelResponse(BaseModel):
-    """Ответ на отмену обработки"""
+    """Cancel processing response"""
     
-    message: str = Field(..., description="Сообщение о результате")
-    state: str = Field(..., description="Новое состояние объекта")
+    message: str = Field(..., description="Result message")
+    state: str = Field(..., description="New object state")
     
     class Config:
         json_schema_extra = {
@@ -158,11 +159,11 @@ class CancelResponse(BaseModel):
 
 
 class RetryResponse(BaseModel):
-    """Ответ на повторную попытку обработки"""
+    """Retry processing response"""
     
-    message: str = Field(..., description="Сообщение о результате")
-    state: str = Field(..., description="Новое состояние объекта")
-    task_id: str = Field(..., description="ID новой задачи")
+    message: str = Field(..., description="Result message")
+    state: str = Field(..., description="New object state")
+    task_id: str = Field(..., description="New task ID")
     
     class Config:
         json_schema_extra = {
@@ -175,10 +176,10 @@ class RetryResponse(BaseModel):
 
 
 class DeleteResponse(BaseModel):
-    """Ответ на удаление объекта"""
+    """Delete object response"""
     
-    message: str = Field(..., description="Сообщение о результате")
-    id: str = Field(..., description="ID удаленного объекта")
+    message: str = Field(..., description="Result message")
+    id: str = Field(..., description="Deleted object ID")
     
     class Config:
         json_schema_extra = {
@@ -190,12 +191,12 @@ class DeleteResponse(BaseModel):
 
 
 class ObjectListResponse(BaseModel):
-    """Список объектов"""
+    """Object list"""
     
-    objects: List[ProgressResponse] = Field(..., description="Список объектов")
-    total: int = Field(..., description="Количество объектов в ответе")
-    limit: int = Field(..., description="Лимит на запрос")
-    offset: int = Field(..., description="Смещение")
+    objects: List[ProgressResponse] = Field(..., description="List of objects")
+    total: int = Field(..., description="Number of objects in response")
+    limit: int = Field(..., description="Request limit")
+    offset: int = Field(..., description="Offset")
     
     class Config:
         json_schema_extra = {
@@ -209,12 +210,12 @@ class ObjectListResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    """Ответ health check"""
+    """Health check response"""
     
-    status: str = Field(..., description="Общий статус сервиса")
-    redis: str = Field(..., description="Статус Redis")
-    active_workers: int = Field(..., description="Количество активных воркеров")
-    max_workers: int = Field(..., description="Максимальное количество воркеров")
+    status: str = Field(..., description="Overall service status")
+    redis: str = Field(..., description="Redis status")
+    active_workers: int = Field(..., description="Number of active workers")
+    max_workers: int = Field(..., description="Maximum number of workers")
     
     class Config:
         json_schema_extra = {
@@ -228,12 +229,12 @@ class HealthResponse(BaseModel):
 
 
 class DependencyInfo(BaseModel):
-    """Информация о зависимостях операции"""
+    """Operation dependency information"""
     
-    operation: str = Field(..., description="Операция")
-    dependencies: List[str] = Field(..., description="Прямые зависимости")
-    all_dependencies: List[str] = Field(..., description="Все зависимости (транзитивные)")
-    dependent_operations: List[str] = Field(..., description="Операции которые зависят от данной")
+    operation: str = Field(..., description="Operation")
+    dependencies: List[str] = Field(..., description="Direct dependencies")
+    all_dependencies: List[str] = Field(..., description="All dependencies (transitive)")
+    dependent_operations: List[str] = Field(..., description="Operations that depend on this operation")
     
     class Config:
         json_schema_extra = {
